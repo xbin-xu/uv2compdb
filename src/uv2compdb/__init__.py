@@ -1,2 +1,5 @@
-def main() -> None:
-    print("Hello from uv2compdb!")
+__version__ = "0.1.0"
+
+from uv2compdb.main import main
+
+__all__ = ["main"]
