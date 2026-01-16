@@ -27,7 +27,7 @@ def _to_posix_path(path: str) -> str:
 
 def _split_and_strip(text: str, delimiter: str) -> list[str]:
     """Split text by delimiter and strip whitespace from each part."""
-    return [item.strip() for item in text.split(delimiter) if item.strip()]
+    return [striped for item in text.split(delimiter) if (striped := item.strip())]
 
 
 @dataclass(frozen=True)
@@ -110,8 +110,7 @@ class UV2CompDB:
     def targets(self) -> dict[str, ET.Element]:
         targets = {}
         for target in self.root.findall(".//Target"):
-            target_name = self._get_text(target.find("TargetName"))
-            if target_name is not None:
+            if target_name := self._get_text(target.find("TargetName")):
                 targets[target_name] = target
         return targets
 
@@ -126,9 +125,8 @@ class UV2CompDB:
         if elem is None:
             return None
 
-        include_in_build = self._get_text(elem.find(".//CommonProperty/IncludeInBuild"))
         # None: True, "0": False, "1": True, "2": inherit
-        if include_in_build == "0":
+        if self._get_text(elem.find(".//CommonProperty/IncludeInBuild")) == "0":
             return None
 
         result = {}
@@ -139,32 +137,28 @@ class UV2CompDB:
         return VariousControls(**result)
 
     def get_toolchain(self, target: ET.Element) -> str | None:
-        toolset_number = self._get_text(target.find("ToolsetNumber"))
-        if toolset_number is None:
+        if not (toolset_number := self._get_text(target.find("ToolsetNumber"))):
             return None
 
-        uac6 = self._get_text(target.find("uAC6"))
-        key = toolset_number + (uac6 if uac6 else "")
+        uac6 = self._get_text(target.find("uAC6")) or ""
+        key = toolset_number + uac6
         return self.UV_TOOLCHAIN_MAP.get(key)
 
     def parse(self, target_name: str) -> list[CommandObject]:
-        target = self.targets.get(target_name)
-        if target is None:
+        if (target := self.targets.get(target_name)) is None:
             logger.warning(f"Not found target: {target_name}")
             return []
 
         toolchain = self.get_toolchain(target)
         logger.info(f"Toolchain: {toolchain}")
 
-        target_vc = self.get_various_controls(target)
-        if target_vc is None:
+        if (target_vc := self.get_various_controls(target)) is None:
             logger.warning(f"Not found target_controls in target: {target_name}")
             return []
 
         command_objects = []
         for group in target.findall(".//Group"):
-            group_vc = self.get_various_controls(group)
-            if group_vc is None:
+            if (group_vc := self.get_various_controls(group)) is None:
                 continue
 
             current_vc = VariousControls.merge(target_vc, group_vc)
@@ -177,8 +171,7 @@ class UV2CompDB:
                 ):
                     continue
 
-                file_controls = self.get_various_controls(file)
-                if file_controls is None:
+                if (file_controls := self.get_various_controls(file)) is None:
                     continue
 
                 file = _to_posix_path(file_path)
@@ -242,8 +235,7 @@ def main() -> int:
     try:
         uv2compdb = UV2CompDB(args.project)
 
-        targets = list(uv2compdb.targets.keys())
-        if not targets:
+        if not (targets := list(uv2compdb.targets.keys())):
             logger.error("No targets found in project")
             return 1
 
