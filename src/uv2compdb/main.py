@@ -4,9 +4,13 @@ Generate Compilation Database by parse Keil uVision project.
 
 from __future__ import annotations
 
+import os
+import re
 import json
+import shutil
 import logging
 import argparse
+import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Callable
@@ -19,6 +23,8 @@ logging.basicConfig(
     format="[%(levelname).1s] %(message)s",
 )
 
+predefined_regex = re.compile(r"^#define\s+(\S+)(?:\s+(.*))?")
+
 
 def _to_posix_path(path: str) -> str:
     """Convert Windows path separators to POSIX format."""
@@ -28,6 +34,26 @@ def _to_posix_path(path: str) -> str:
 def _split_and_strip(text: str, delimiter: str) -> list[str]:
     """Split text by delimiter and strip whitespace from each part."""
     return [striped for item in text.split(delimiter) if (striped := item.strip())]
+
+
+@dataclass(frozen=True)
+class Toolchain:
+    path: str
+    compiler: str
+    assembler: str
+
+
+@dataclass
+class FileObject:
+    file: str
+    arguments: list[str] = field(default_factory=list)
+
+
+@dataclass
+class TargetSetting:
+    name: str
+    toolchain: Toolchain
+    file_objects: list[FileObject] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -92,10 +118,10 @@ class UV2CompDB:
         "IncludePath": ("include_path", partial(_split_and_strip, delimiter=";")),
     }
 
-    UV_TOOLCHAIN_MAP: dict[str, str] = {
-        "0x00": "c51",
-        "0x40": "armcc",
-        "0x41": "armclang",
+    UV_TOOLCHAIN_MAP: dict[str, Toolchain] = {
+        "0x00": Toolchain("", "c51", ""),
+        "0x40": Toolchain("", "armcc", "armasm"),
+        "0x41": Toolchain("", "armclang", "armasm"),
     }
 
     def __init__(self, project_path: Path) -> None:
@@ -136,27 +162,54 @@ class UV2CompDB:
             )
         return VariousControls(**result)
 
-    def get_toolchain(self, target: ET.Element) -> str | None:
+    def get_toolchain(self, target: ET.Element | None) -> Toolchain | None:
+        if target is None:
+            return None
+
         if not (toolset_number := self._get_text(target.find("ToolsetNumber"))):
             return None
 
         uac6 = self._get_text(target.find("uAC6")) or ""
         key = toolset_number + uac6
-        return self.UV_TOOLCHAIN_MAP.get(key)
+        if not (toolchain := self.UV_TOOLCHAIN_MAP.get(key)):
+            return None
 
-    def parse(self, target_name: str) -> list[CommandObject]:
+        compiler_path = shutil.which(toolchain.compiler)
+        return Toolchain(
+            path=(
+                Path(compiler_path).parent.resolve().as_posix()
+                if compiler_path
+                else toolchain.path
+            ),
+            compiler=(
+                _to_posix_path(compiler_path) if compiler_path else toolchain.compiler
+            ),
+            assembler=(
+                (Path(compiler_path).parent / toolchain.assembler).resolve().as_posix()
+                if compiler_path
+                else toolchain.assembler
+            ),
+        )
+
+    def parse(self, target_name: str) -> TargetSetting | None:
         if (target := self.targets.get(target_name)) is None:
             logger.warning(f"Not found target: {target_name}")
-            return []
+            return None
 
-        toolchain = self.get_toolchain(target)
+        if (toolchain := self.get_toolchain(target)) is None:
+            logger.warning("Not found toolchain")
+            return None
         logger.info(f"Toolchain: {toolchain}")
 
         if (target_vc := self.get_various_controls(target)) is None:
             logger.warning(f"Not found target_controls in target: {target_name}")
-            return []
+            return None
 
-        command_objects = []
+        target_setting = TargetSetting(
+            name=target_name,
+            toolchain=toolchain,
+        )
+        file_objects = target_setting.file_objects
         for group in target.findall(".//Group"):
             if (group_vc := self.get_various_controls(group)) is None:
                 continue
@@ -175,44 +228,101 @@ class UV2CompDB:
                     continue
 
                 file = _to_posix_path(file_path)
-                command_objects.append(
-                    CommandObject(
-                        directory=self.project_path.resolve().parent.as_posix(),
+                file_objects.append(
+                    FileObject(
                         file=file,
-                        arguments=(
-                            [_to_posix_path(toolchain)]
-                            + VariousControls.merge(
-                                current_vc, file_controls
-                            ).get_options()
-                            + ["-c"]
-                            + [file]
-                        ),
+                        arguments=VariousControls.merge(
+                            current_vc, file_controls
+                        ).get_options(),
                     )
                 )
-                # logger.debug(f"command_object: {command_objects[-1]}")
+                # logger.debug(f"file_object: {file_objects[-1]}")
+        return target_setting
+
+    def get_predefined_macros(self, toolchain: Toolchain | None) -> list[str]:
+        if toolchain is None:
+            return []
+
+        include_path = (
+            [f"-I{(Path(toolchain.path).parent / 'include').resolve().as_posix()}"]
+            if toolchain.path
+            else []
+        )
+
+        if "armcc" in toolchain.compiler:
+            cmd = f"{toolchain.compiler} --list_macros"
+        elif "armclang" in toolchain.compiler:
+            cmd = f"{toolchain.compiler} --target=arm-arm-none-eabi -dM -E -"
+        else:
+            return include_path
+
+        logger.info(f"Get predefined macro by: `{cmd}`")
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, input="")
+            if result.returncode != 0:
+                logger.warning(
+                    f"Exited with code {result.returncode}: {result.stderr.strip()}"
+                )
+                return include_path
+        except (FileNotFoundError, OSError) as e:
+            logger.warning(f"Failed to invoke compiler: {e}")
+            return include_path
+
+        return [
+            f"-D{name}={value}"
+            for line in result.stdout.splitlines()
+            if (m := predefined_regex.match(line.strip()))
+            for name, value in [m.groups()]
+        ] + include_path
+
+    def generate_command_objects(
+        self,
+        target_setting: TargetSetting | None,
+        extra_args: list[str] = [],
+        predefined_macros: bool = False,
+    ) -> list[CommandObject]:
+        if target_setting is None:
+            return []
+
+        command_objects = []
+        directory = self.project_path.parent.resolve().as_posix()
+        toolchain_args = (
+            self.get_predefined_macros(target_setting.toolchain)
+            if predefined_macros
+            else []
+        )
+        for file_object in target_setting.file_objects:
+            command_objects.append(
+                CommandObject(
+                    directory=directory,
+                    file=file_object.file,
+                    arguments=(
+                        [target_setting.toolchain.compiler]
+                        + toolchain_args
+                        + file_object.arguments
+                        + extra_args
+                    ),
+                )
+            )
         return command_objects
 
 
 def generate_compile_commands(
-    command_objects: list[CommandObject],
-    output: Path,
-    extra_arguments: str | None,
+    command_objects: list[CommandObject], output: Path
 ) -> bool:
     if not command_objects:
         logger.warning("No command objects")
         return False
 
-    objs = [asdict(obj) for obj in command_objects]
-    if extra_arguments:
-        extra_args = _split_and_strip(_to_posix_path(extra_arguments), delimiter=" ")
-        for obj in objs:
-            obj["arguments"].extend(extra_args)
-
     output.parent.mkdir(parents=True, exist_ok=True)
     with open(output, "w", encoding="utf-8") as f:
-        json.dump(objs, f, indent=4, ensure_ascii=False)
+        json.dump(
+            [asdict(obj) for obj in command_objects],
+            f,
+            indent=4,
+            ensure_ascii=False,
+        )
 
-    logger.info(f"Generate at {output.resolve().as_posix()}")
     return True
 
 
@@ -221,6 +331,12 @@ def main() -> int:
         description="Generate compile_commands.json by parse Keil uVision project"
     )
     parser.add_argument("-a", "--arguments", default=None, help="add extra arguments")
+    parser.add_argument(
+        "-A",
+        "--predefined_macros",
+        action="store_true",
+        help="try to add predefined macros",
+    )
     parser.add_argument("-t", "--target", default=None, help="target name")
     parser.add_argument(
         "-o",
@@ -256,8 +372,15 @@ def main() -> int:
         else:
             args.output = output_path
 
-        command_objects = uv2compdb.parse(args.target)
-        generate_compile_commands(command_objects, args.output, args.arguments)
+        target_setting = uv2compdb.parse(args.target)
+        command_objects = uv2compdb.generate_command_objects(
+            target_setting,
+            _split_and_strip(args.arguments, delimiter=" ") if args.arguments else [],
+            args.predefined_macros,
+        )
+        if not generate_compile_commands(command_objects, args.output):
+            return 1
+        logger.info(f"Generate at {args.output.resolve().as_posix()}")
     except Exception as e:
         logger.exception(f"Unexpected error: {e}")
         return 1

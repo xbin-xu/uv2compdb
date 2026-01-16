@@ -5,7 +5,7 @@ Generate [Compilation Database] by parse Keil uVision project.
 ## Usage
 
 ```sh
-usage: uv2compdb [-h] [-a ARGUMENTS] [-t TARGET] [-o OUTPUT] project
+usage: uv2compdb [-h] [-a ARGUMENTS] [-A] [-t TARGET] [-o OUTPUT] project
 
 Generate compile_commands.json by parse Keil uVision project
 
@@ -16,6 +16,8 @@ options:
   -h, --help            show this help message and exit
   -a, --arguments ARGUMENTS
                         add extra arguments
+  -A, --predefined_macros
+                        try to add predefined macros
   -t, --target TARGET   target name
   -o, --output OUTPUT   output dir/file path (default: compile_commands.json)
 ```

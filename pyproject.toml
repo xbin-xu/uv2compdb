@@ -1,6 +1,6 @@
 [project]
 name = "uv2compdb"
-version = "0.1.0"
+version = "0.2.0"
 description = "Generate Compilation Database by parse Keil uVision project"
 readme = "README.md"
 authors = [{ name = "xbin", email = "xbin.xu@qq.com" }]
