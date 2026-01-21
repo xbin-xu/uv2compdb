@@ -1,9 +1,11 @@
 {
     "cSpell.words": [
+        "apcs",
         "armasm",
         "armcc",
         "armclang",
         "compdb",
+        "declspec",
         "DFOO",
         "DMBEDTLS",
         "eabi",
@@ -12,6 +14,7 @@
         "levelname",
         "MBEDTLS",
         "pycache",
+        "uvconvertor",
         "uvproj",
         "venv",
         "xbin"

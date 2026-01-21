@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO,
     format="[%(levelname).1s] %(message)s",
+    # format="[%(levelname).1s] [%(asctime)s] [%(filename)s:%(lineno)d] %(message)s",
 )
 
 
@@ -21,10 +22,10 @@ def main() -> int:
     )
     parser.add_argument("-a", "--arguments", default=None, help="add extra arguments")
     parser.add_argument(
-        "-A",
-        "--predefined_macros",
+        "-b",
+        "--build",
         action="store_true",
-        help="try to add predefined macros",
+        help="try to build while dep/build_log files don't not exist",
     )
     parser.add_argument("-t", "--target", default=None, help="target name")
     parser.add_argument(
@@ -32,6 +33,12 @@ def main() -> int:
         "--output",
         default="compile_commands.json",
         help="output dir/file path (default: compile_commands.json)",
+    )
+    parser.add_argument(
+        "-p",
+        "--predefined",
+        action="store_true",
+        help="try to add predefined macros",
     )
     parser.add_argument("project", type=Path, help="path to .uvproj[x] file")
 
@@ -61,11 +68,11 @@ def main() -> int:
         else:
             args.output = output_path
 
-        target_setting = uv2compdb.parse(args.target)
+        target_setting = uv2compdb.parse(args.target, args.build)
         command_objects = uv2compdb.generate_command_objects(
             target_setting,
             _split_and_strip(args.arguments, delimiter=" ") if args.arguments else [],
-            args.predefined_macros,
+            args.predefined,
         )
         if not generate_compile_commands(command_objects, args.output):
             return 1
