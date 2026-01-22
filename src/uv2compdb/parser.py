@@ -24,6 +24,7 @@ C_VERSION_REGEX = re.compile(r"^--c(\d+)$")
 ARMCC_UNKNOWN_ARGUMENT_REGEX = [
     (re.compile(r"^--gnu$"), False),
     (re.compile(r"^--c\d+$"), False),
+    (re.compile(r"^--cpp$"), False),
     (re.compile(r"^--cpu$"), True),
     (re.compile(r"^--apcs="), False),
     (re.compile(r"^--split_sections$"), False),
