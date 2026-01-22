@@ -110,7 +110,7 @@ class VariousControls:
             [f"-I{_to_posix_path(x)}" for x in self.include_path]
             + [f"{_to_posix_path(x)}" for x in self.misc_controls]
             + [f"-U{_to_posix_path(x)}" for x in self.undefine]
-            + [f"-D{_to_posix_path(x.replace(r'\"', '"'))}" for x in self.define]
+            + ["-D" + _to_posix_path(x.replace(r'\\"', '"')) for x in self.define]
         )
 
     @classmethod

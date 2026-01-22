@@ -4,7 +4,7 @@ version = "0.3.0"
 description = "Generate Compilation Database by parse Keil uVision project"
 readme = "README.md"
 authors = [{ name = "xbin", email = "xbin.xu@qq.com" }]
-requires-python = ">=3.13"
+requires-python = ">=3.8"
 dependencies = []
 
 [project.scripts]
