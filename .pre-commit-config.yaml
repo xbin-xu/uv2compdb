@@ -1,0 +1,35 @@
+# https://pre-commit.com/
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+  - pre-push
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: check-vcs-permalinks
+      - id: check-added-large-files
+  # Commitizen
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.12.1
+    hooks:
+      - id: commitizen
+      - id: commitizen-branch
+        stages: [pre-push]
+  # Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.14
+    hooks:
+      - id: ruff-check
+        args: [ --fix ]
+      - id: ruff-format
+  # Mypy
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+    -   id: mypy
