@@ -169,12 +169,10 @@ class UV2CompDB:
             if (target_name := self._get_text(target.find("TargetName")))
         }
 
-    def _get_text(
-        self, elem: ET.Element | None, pred: Callable[[str], list[str]] | None = None
-    ) -> str | list[str] | None:
+    def _get_text(self, elem: ET.Element | None) -> str | None:
         if elem is None or elem.text is None:
             return None
-        return pred(elem.text) if pred else elem.text
+        return elem.text
 
     def get_various_controls(self, elem: ET.Element | None) -> VariousControls | None:
         if elem is None:
@@ -186,9 +184,8 @@ class UV2CompDB:
 
         result = {}
         for name, (var_name, pred) in self.UV_VARIOUS_CONTROLS_MAP.items():
-            result[var_name] = (
-                self._get_text(elem.find(f".//Cads/VariousControls/{name}"), pred) or []
-            )
+            text = self._get_text(elem.find(f".//Cads/VariousControls/{name}"))
+            result[var_name] = pred(text) if text else []
         return VariousControls(**result)
 
     def try_build(self, target: ET.Element | None) -> bool:
@@ -218,12 +215,12 @@ class UV2CompDB:
         if target is None:
             return None
 
-        output_directory = self._get_text(target.find(".//OutputDirectory"))
-        output_name = self._get_text(target.find(".//OutputName"))
+        if not (output_directory := self._get_text(target.find(".//OutputDirectory"))):
+            return None
+        if not (output_name := self._get_text(target.find(".//OutputName"))):
+            return None
         return (
             self.project_path.parent / output_directory / f"{output_name}.build_log.htm"
-            if output_directory and output_name
-            else None
         )
 
     def get_toolchain_from_build_log(
@@ -232,7 +229,9 @@ class UV2CompDB:
         if target is None:
             return None
 
-        build_log_path = self.get_build_log_path(target)
+        if (build_log_path := self.get_build_log_path(target)) is None:
+            return None
+
         if try_build and not build_log_path.exists():
             logger.warning("Not found build_log, try build ...")
             self.try_build(target)
@@ -294,14 +293,14 @@ class UV2CompDB:
         if target is None:
             return None
 
-        target_name = self._get_text(target.find("TargetName"))
-        output_directory = self._get_text(target.find(".//OutputDirectory"))
+        if not (target_name := self._get_text(target.find("TargetName"))):
+            return None
+        if not (output_directory := self._get_text(target.find(".//OutputDirectory"))):
+            return None
         return (
             self.project_path.parent
             / output_directory
             / f"{self.project_path.stem}_{target_name}.dep"
-            if target_name and output_directory
-            else None
         )
 
     def parse_dep(
@@ -310,7 +309,9 @@ class UV2CompDB:
         if target is None:
             return []
 
-        dep_path = self.get_dep_path(target)
+        if (dep_path := self.get_dep_path(target)) is None:
+            return []
+
         if try_build and not dep_path.exists():
             logger.warning("Not Found dep file, try build ...")
             self.try_build(target)
@@ -365,10 +366,9 @@ class UV2CompDB:
                 if (file_controls := self.get_various_controls(file)) is None:
                     continue
 
-                file = _to_posix_path(file_path)
                 file_objects.append(
                     FileObject(
-                        file=file,
+                        file=_to_posix_path(file_path),
                         arguments=VariousControls.merge(
                             current_vc, file_controls
                         ).get_options(),
