@@ -6,7 +6,7 @@ import logging
 import argparse
 from pathlib import Path
 
-from .parser import UV2CompDB, _split_and_strip, generate_compile_commands
+from uv2compdb.parser import UV2CompDB, _split_and_strip, generate_compile_commands
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
