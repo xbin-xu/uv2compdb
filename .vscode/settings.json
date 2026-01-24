@@ -8,17 +8,23 @@
         "compdb",
         "declspec",
         "DFOO",
+        "distpath",
         "DMBEDTLS",
         "eabi",
         "fdeclspec",
         "Keil",
         "levelname",
+        "LICEN",
         "MBEDTLS",
         "Mypy",
+        "nuitka",
         "pycache",
+        "pyinstaller",
+        "testpypi",
         "uvconvertor",
         "uvproj",
         "venv",
+        "workpath",
         "xbin"
     ]
 }

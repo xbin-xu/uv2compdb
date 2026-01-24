@@ -1,5 +1,5 @@
 """
-Generate Compilation Database by parse Keil uVision project.
+Generate Compilation Database by parse Keil µVision project.
 """
 
 import logging
@@ -18,7 +18,7 @@ logging.basicConfig(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Generate compile_commands.json by parse Keil uVision project"
+        description="Generate compile_commands.json by parse Keil µVision project"
     )
     parser.add_argument("-a", "--arguments", default=None, help="add extra arguments")
     parser.add_argument(

@@ -1,13 +1,43 @@
 # uv2compdb
 
-Generate [Compilation Database] by parse Keil uVision project.
+Generate [Compilation Database] by parse Keil µVision project.
+
+## Features
+
++ Parse strategy (dep/build_log -> XML)
++ Extract toolchain predefined macros with `-p` option
++ VariousControls hierarchical merge (Target -> Group -> File)
+
+## Installation
+
+```sh
+pip install uv2compdb
+```
 
 ## Usage
+
+### Basic Usage
+
+Generate `compile_commands.json` in the current directory for the first target if the project has multiple targets.
+
+```sh
+uv2compdb /path/to/project
+```
+
+### Specify target and output
+
+Generate `compile_commands.json` for a specific target and output
+
+```sh
+uv2compdb /path/to/project -t target -o /path/to/compile_commands.json
+```
+
+### Help
 
 ```sh
 usage: uv2compdb [-h] [-a ARGUMENTS] [-b] [-t TARGET] [-o OUTPUT] [-p] project
 
-Generate compile_commands.json by parse Keil uVision project
+Generate compile_commands.json by parse Keil µVision project
 
 positional arguments:
   project               path to .uvproj[x] file
@@ -29,7 +59,7 @@ options:
 + [x] Not parsed `"Options" -> "ASM"`, so Asm file use same options with C file
 + [x] Can't parse **RTE** components
 + [x] Can't add toolchain predefined macros and include path
-+ [ ] The support for ARMCC(AC5) not well
++ [ ] The support for ARMCC (AC5) not well
   + need config `.clangd` manually
 
 ## [Clangd]
@@ -45,6 +75,11 @@ CompileFlags:
 
 Diagnostics:
   UnusedIncludes: None  # Strict(default), None
+  # Suppress:
+  #   - no_member
+  #   - no_member_suggest
+  #   - no_template
+  #   - undeclared_var_use
 ```
 
 ## References

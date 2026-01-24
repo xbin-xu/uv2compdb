@@ -125,7 +125,7 @@ class VariousControls:
 
 
 class UV2CompDB:
-    """Keil uVision project parser."""
+    """Keil µVision project parser."""
 
     # TODO: how to deal with delimiters inside text (e.g., -DFOO="(1, 2)")
     UV_VARIOUS_CONTROLS_MAP: dict[str, tuple[str, Callable[[str], list[str]]]] = {
