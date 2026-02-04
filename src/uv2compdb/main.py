@@ -63,7 +63,7 @@ def main() -> int:
         if not args.target:
             args.target = targets[0]
             logger.warning(
-                f"Project has multi targets: {targets}, use the first {args.target}"
+                f"Project has target(s): {targets}, use the first {args.target}"
             )
         elif args.target not in targets:
             logger.error(f"Not found target: {args.target}")
