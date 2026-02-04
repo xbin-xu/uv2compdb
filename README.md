@@ -35,20 +35,23 @@ uv2compdb /path/to/project -t target -o /path/to/compile_commands.json
 ### Help
 
 ```sh
-usage: uv2compdb [-h] [-a ARGUMENTS] [-b] [-t TARGET] [-o OUTPUT] [-p] project
+usage: uv2compdb [-h] [-v] [-a ARGUMENTS] [-b] [-t TARGET] [-o OUTPUT] [-p] project
 
 Generate compile_commands.json by parse Keil µVision project
 
 positional arguments:
   project               path to .uvproj[x] file
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
-  -a, --arguments ARGUMENTS
+  -v, --version         show version and exit
+  -a ARGUMENTS, --arguments ARGUMENTS
                         add extra arguments
   -b, --build           try to build while dep/build_log files don't not exist
-  -t, --target TARGET   target name
-  -o, --output OUTPUT   output dir/file path (default: compile_commands.json)
+  -t TARGET, --target TARGET
+                        target name
+  -o OUTPUT, --output OUTPUT
+                        output dir/file path (default: compile_commands.json)
   -p, --predefined      try to add predefined macros
 ```
 

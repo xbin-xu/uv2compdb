@@ -5,9 +5,11 @@ Generate Compilation Database by parse Keil µVision project.
 import logging
 import argparse
 from pathlib import Path
+from importlib.metadata import version
 
 from uv2compdb.parser import UV2CompDB, _split_and_strip, generate_compile_commands
 
+__version__ = version("uv2compdb")
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO,
@@ -19,6 +21,13 @@ logging.basicConfig(
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Generate compile_commands.json by parse Keil µVision project"
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=__version__,
+        help="show version and exit",
     )
     parser.add_argument("-a", "--arguments", default=None, help="add extra arguments")
     parser.add_argument(
