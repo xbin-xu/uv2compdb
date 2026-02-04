@@ -7,7 +7,7 @@ import argparse
 from pathlib import Path
 from importlib.metadata import version
 
-from uv2compdb.parser import UV2CompDB, _split_and_strip, generate_compile_commands
+from uv2compdb.parser import UV2CompDB, split_and_strip, generate_compile_commands
 
 __version__ = version("uv2compdb")
 logger = logging.getLogger(__name__)
@@ -80,7 +80,7 @@ def main() -> int:
         target_setting = uv2compdb.parse(args.target, args.build)
         command_objects = uv2compdb.generate_command_objects(
             target_setting,
-            _split_and_strip(args.arguments, delimiter=" ") if args.arguments else [],
+            split_and_strip(args.arguments, delimiter=" ") if args.arguments else [],
             args.predefined,
         )
         if not generate_compile_commands(command_objects, args.output):

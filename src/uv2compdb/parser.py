@@ -43,12 +43,12 @@ PREDEFINED_FILTER_ARGUMENT_REGEX = [
 ]
 
 
-def _to_posix_path(path: str) -> str:
+def to_posix_path(path: str) -> str:
     """Convert Windows path separators to POSIX format."""
     return path.replace("\\", "/")
 
 
-def _split_and_strip(text: str, delimiter: str) -> list[str]:
+def split_and_strip(text: str, delimiter: str) -> list[str]:
     """Split text by delimiter and strip whitespace from each part."""
     return [striped for item in text.split(delimiter) if (striped := item.strip())]
 
@@ -108,10 +108,10 @@ class VariousControls:
         # 'MBEDTLS_CONFIG_FILE=/\"config-aes-cbc.h/\"'
         #    => '-DMBEDTLS_CONFIG_FILE="config-aes-cbc.h"'
         return (
-            [f"-I{_to_posix_path(x)}" for x in self.include_path]
-            + [f"{_to_posix_path(x)}" for x in self.misc_controls]
-            + [f"-U{_to_posix_path(x)}" for x in self.undefine]
-            + ["-D" + _to_posix_path(x.replace(r'\\"', '"')) for x in self.define]
+            [f"-I{to_posix_path(x)}" for x in self.include_path]
+            + [f"{to_posix_path(x)}" for x in self.misc_controls]
+            + [f"-U{to_posix_path(x)}" for x in self.undefine]
+            + ["-D" + to_posix_path(x.replace(r'\\"', '"')) for x in self.define]
         )
 
     @classmethod
@@ -129,10 +129,10 @@ class UV2CompDB:
 
     # TODO: how to deal with delimiters inside text (e.g., -DFOO="(1, 2)")
     UV_VARIOUS_CONTROLS_MAP: dict[str, tuple[str, Callable[[str], list[str]]]] = {
-        "MiscControls": ("misc_controls", partial(_split_and_strip, delimiter=" ")),
-        "Define": ("define", partial(_split_and_strip, delimiter=",")),
-        "Undefine": ("undefine", partial(_split_and_strip, delimiter=",")),
-        "IncludePath": ("include_path", partial(_split_and_strip, delimiter=";")),
+        "MiscControls": ("misc_controls", partial(split_and_strip, delimiter=" ")),
+        "Define": ("define", partial(split_and_strip, delimiter=",")),
+        "Undefine": ("undefine", partial(split_and_strip, delimiter=",")),
+        "IncludePath": ("include_path", partial(split_and_strip, delimiter=";")),
     }
 
     UV_TOOLCHAIN_MAP: dict[str, Toolchain] = {
@@ -242,7 +242,7 @@ class UV2CompDB:
         if not (m := TOOLCHAIN_REGEX.search(text)):
             return None
 
-        toolchain_path = _to_posix_path(m.group(1))
+        toolchain_path = to_posix_path(m.group(1))
         return Toolchain(
             path=toolchain_path,
             compiler=f"{toolchain_path}/{m.group(2)}",
@@ -269,7 +269,7 @@ class UV2CompDB:
                 else toolchain.path
             ),
             compiler=(
-                _to_posix_path(compiler_path) if compiler_path else toolchain.compiler
+                to_posix_path(compiler_path) if compiler_path else toolchain.compiler
             ),
             assembler=(
                 (Path(compiler_path).parent / toolchain.assembler).resolve().as_posix()
@@ -368,7 +368,7 @@ class UV2CompDB:
 
                 file_objects.append(
                     FileObject(
-                        file=_to_posix_path(file_path),
+                        file=to_posix_path(file_path),
                         arguments=VariousControls.merge(
                             current_vc, file_controls
                         ).get_options(),
