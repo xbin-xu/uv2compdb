@@ -57,12 +57,11 @@ optional arguments:
 
 ## Limit
 
-+ [ ] Not support C51
 + [x] Not parsed `"Options" -> "C/C++" -> "Language / Code Generation"`
 + [x] Not parsed `"Options" -> "ASM"`, so Asm file use same options with C file
 + [x] Can't parse **RTE** components
 + [x] Can't add toolchain predefined macros and include path
-+ [ ] The support for ARMCC (AC5) not well
++ [ ] The support for C51 / ARMCC (AC5) not well
   + need config `.clangd` manually
 
 ## [Clangd]

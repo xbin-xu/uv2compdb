@@ -58,6 +58,7 @@ class Toolchain:
     path: str
     compiler: str
     assembler: str
+    xml_tag: tuple[str, str]
 
 
 @dataclass
@@ -135,10 +136,42 @@ class UV2CompDB:
         "IncludePath": ("include_path", partial(split_and_strip, delimiter=";")),
     }
 
+    UV_C51_XML_TAG: tuple[str, str] = ("C51", "Ax51")
+    UV_ARM_XML_TAG: tuple[str, str] = ("Cads", "Aads")
+
+    # Language-Extensions: https://developer.arm.com/documentation/101655/0961/Cx51-User-s-Guide/Language-Extensions?lang=en
+    UV_C51_EXTENSION_KEYWORDS: dict[str, str] = {
+        # Data Type
+        "bit": "unsigned char",
+        "sbit": "volatile unsigned char",
+        "sfr": "volatile unsigned char",
+        "sfr16": "volatile unsigned short",
+        # Memory Models
+        "small": "",
+        "compact": "",
+        "large": "",
+        # Memory Type
+        "bdata": "",
+        "data": "",
+        "idata": "",
+        "pdata": "",
+        "xdata": "",
+        "far": "",
+        "code": "",
+        # Other
+        "_at_": "",
+        "alien": "",
+        "interrupt": "",
+        "_priority_": "",
+        "reentrant": "",
+        "_task_": "",
+        "using": "",
+    }
+
     UV_TOOLCHAIN_MAP: dict[str, Toolchain] = {
-        "0x00": Toolchain("", "c51", ""),
-        "0x40": Toolchain("", "armcc", "armasm"),
-        "0x41": Toolchain("", "armclang", "armasm"),
+        "0x00": Toolchain("", "c51", "a51", UV_C51_XML_TAG),
+        "0x40": Toolchain("", "armcc", "armasm", UV_ARM_XML_TAG),
+        "0x41": Toolchain("", "armclang", "armasm", UV_ARM_XML_TAG),
     }
 
     UV_CLI_ERRORLEVEL_MAP: dict[int, str] = {
@@ -174,8 +207,10 @@ class UV2CompDB:
             return None
         return elem.text
 
-    def get_various_controls(self, elem: ET.Element | None) -> VariousControls | None:
-        if elem is None:
+    def get_various_controls(
+        self, elem: ET.Element | None, xml_tag: str | None
+    ) -> VariousControls | None:
+        if elem is None or not xml_tag:
             return None
 
         # None: True, "0": False, "1": True, "2": inherit
@@ -184,7 +219,7 @@ class UV2CompDB:
 
         result = {}
         for name, (var_name, pred) in self.UV_VARIOUS_CONTROLS_MAP.items():
-            text = self._get_text(elem.find(f".//Cads/VariousControls/{name}"))
+            text = self._get_text(elem.find(f".//{xml_tag}/VariousControls/{name}"))
             result[var_name] = pred(text) if text else []
         return VariousControls(**result)
 
@@ -247,6 +282,9 @@ class UV2CompDB:
             path=toolchain_path,
             compiler=f"{toolchain_path}/{m.group(2)}",
             assembler=f"{toolchain_path}/{m.group(3)}",
+            xml_tag=self.UV_C51_XML_TAG
+            if "c51" in m.group(2).lower()
+            else self.UV_ARM_XML_TAG,
         )
 
     def get_toolchain_from_xml(self, target: ET.Element | None) -> Toolchain | None:
@@ -276,6 +314,7 @@ class UV2CompDB:
                 if compiler_path
                 else toolchain.assembler
             ),
+            xml_tag=toolchain.xml_tag,
         )
 
     def get_toolchain(
@@ -340,17 +379,21 @@ class UV2CompDB:
             file_objects.append(FileObject(file=file, arguments=args))
         return file_objects
 
-    def parse_xml(self, target: ET.Element | None) -> list[FileObject]:
-        if target is None:
+    def parse_xml(
+        self, target: ET.Element | None, toolchain: Toolchain | None
+    ) -> list[FileObject]:
+        if target is None or toolchain is None:
             return []
 
-        if (target_vc := self.get_various_controls(target)) is None:
+        xml_tag = toolchain.xml_tag[0]
+
+        if (target_vc := self.get_various_controls(target, xml_tag)) is None:
             logger.warning("Not found target_controls in target")
             return []
 
         file_objects = []
         for group in target.findall(".//Group"):
-            if (group_vc := self.get_various_controls(group)) is None:
+            if (group_vc := self.get_various_controls(group, xml_tag)) is None:
                 continue
 
             current_vc = VariousControls.merge(target_vc, group_vc)
@@ -358,12 +401,12 @@ class UV2CompDB:
                 file_path = self._get_text(file.find("FilePath"))
                 # file_type = self._get_text(file.find("FileType"))
 
-                if not file_path or not file_path.endswith(
-                    (".s", ".c", ".cpp", ".cc", ".cx", ".cxx")
+                if not file_path or not file_path.lower().endswith(
+                    (".a51", ".s", ".c", ".cpp", ".cc", ".cx", ".cxx")
                 ):
                     continue
 
-                if (file_controls := self.get_various_controls(file)) is None:
+                if (file_controls := self.get_various_controls(file, xml_tag)) is None:
                     continue
 
                 file_objects.append(
@@ -387,9 +430,15 @@ class UV2CompDB:
             return None
         logger.info(f"Toolchain: {toolchain}")
 
-        if not (file_objects := self.parse_dep(target, try_build)):
-            logger.warning("Not found dep file, fallback to parse xml")
-            file_objects = self.parse_xml(target)
+        if toolchain.xml_tag == self.UV_C51_XML_TAG:
+            file_objects = self.parse_xml(target, toolchain)
+        elif toolchain.xml_tag == self.UV_ARM_XML_TAG:
+            if not (file_objects := self.parse_dep(target, try_build)):
+                logger.warning("Not found dep file, fallback to parse xml")
+                file_objects = self.parse_xml(target, toolchain)
+        else:
+            logger.error(f"Unknown {toolchain.xml_tag=}")
+            return None
 
         return TargetSetting(
             name=target_name,
@@ -432,6 +481,21 @@ class UV2CompDB:
     ) -> list[str]:
         if toolchain is None or not args:
             return []
+
+        if toolchain.xml_tag == self.UV_C51_XML_TAG:
+            # Predefined-Macros: https://developer.arm.com/documentation/101655/0961/Cx51-User-s-Guide/Preprocessor/Macros/Predefined-Macros?lang=en
+            c51_defs = ["-D__C51__"]
+            c51_defs.extend(
+                f"-D{key}={val}" for key, val in self.UV_C51_EXTENSION_KEYWORDS.items()
+            )
+
+            # /path/to/keil/c51/bin -> /path/to/keil/c51/inc
+            if (idx := toolchain.path.lower().rfind("bin")) != -1:
+                c51_inc = toolchain.path[:idx] + toolchain.path[idx:].lower().replace(
+                    "bin", "inc"
+                )
+                c51_defs.append(f"-I{c51_inc}")
+            return c51_defs
 
         filtered_args = []
         args_iter = iter(args)
@@ -487,7 +551,8 @@ class UV2CompDB:
                 self.get_predefined_macros(
                     target_setting.toolchain, file_object.arguments
                 )
-                if predefined_macros and not file_object.file.endswith(".s")
+                if predefined_macros
+                and not file_object.file.lower().endswith((".a51", ".s"))
                 else []
             )
             arguments = self.filter_unknown_argument(
@@ -499,13 +564,16 @@ class UV2CompDB:
                     file=file_object.file,
                     arguments=(
                         [
-                            target_setting.toolchain.compiler
-                            if not file_object.file.endswith(".s")
-                            else target_setting.toolchain.assembler
+                            (
+                                target_setting.toolchain.compiler
+                                if not file_object.file.lower().endswith((".a51", ".s"))
+                                else target_setting.toolchain.assembler
+                            )
                         ]
                         + toolchain_args
                         + arguments
                         + extra_args
+                        + [file_object.file]
                     ),
                 )
             )

@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "Aads",
         "apcs",
         "armasm",
         "armcc",
@@ -18,13 +19,16 @@
         "MBEDTLS",
         "Mypy",
         "nuitka",
+        "pdata",
         "pycache",
         "pyinstaller",
+        "sbit",
         "testpypi",
         "uvconvertor",
         "uvproj",
         "venv",
         "workpath",
-        "xbin"
+        "xbin",
+        "xdata"
     ]
 }
