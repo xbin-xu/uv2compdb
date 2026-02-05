@@ -234,8 +234,15 @@ class UV2CompDB:
         if not (uv4_path := shutil.which("uv4")):
             return False
 
-        cmd = f"{uv4_path} -b -t {target_name} {self.project_path.resolve().as_posix()} -j0"
-        logger.info(f"Run: `{cmd}`")
+        cmd = [
+            uv4_path,
+            "-b",
+            "-t",
+            target_name,
+            self.project_path.resolve().as_posix(),
+            "-j0",
+        ]
+        logger.info(f"Run: `{subprocess.list2cmdline(cmd)}`")
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)
             logger.info(
@@ -448,16 +455,18 @@ class UV2CompDB:
 
     @staticmethod
     @lru_cache(maxsize=32)
-    def _get_predefined_macros_cached(compiler: str, args_str: str) -> tuple[str, ...]:
+    def _get_predefined_macros_cached(
+        compiler: str, args: tuple[str, ...]
+    ) -> tuple[str, ...]:
         """Get predefined macros from compiler with caching."""
         if "armcc" in compiler.lower():
-            cmd = f"{compiler} {args_str} --list_macros"
+            cmd = [compiler, *args, "--list_macros"]
         elif "armclang" in compiler.lower():
-            cmd = f"{compiler} {args_str} --target=arm-arm-none-eabi -dM -E -"
+            cmd = [compiler, *args, "--target=arm-arm-none-eabi", "-dM", "-E", "-"]
         else:
             return ()
 
-        logger.info(f"Get predefined macro by: `{cmd}`")
+        logger.info(f"Get predefined macro by: `{subprocess.list2cmdline(cmd)}`")
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, input="")
             if result.returncode != 0:
@@ -509,9 +518,7 @@ class UV2CompDB:
                 next(args_iter, None)
 
         return list(
-            self._get_predefined_macros_cached(
-                toolchain.compiler, " ".join(filtered_args)
-            )
+            self._get_predefined_macros_cached(toolchain.compiler, tuple(filtered_args))
         )
 
     def filter_unknown_argument(
