@@ -19,7 +19,6 @@ publish:
 publish-test:
 	uv tool run twine upload --repository testpypi dist/*
 
-
 .PHONY: exe
 # nuitka
 exe:

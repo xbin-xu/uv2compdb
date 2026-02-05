@@ -289,9 +289,11 @@ class UV2CompDB:
             path=toolchain_path,
             compiler=f"{toolchain_path}/{m.group(2)}",
             assembler=f"{toolchain_path}/{m.group(3)}",
-            xml_tag=self.UV_C51_XML_TAG
-            if "c51" in m.group(2).lower()
-            else self.UV_ARM_XML_TAG,
+            xml_tag=(
+                self.UV_C51_XML_TAG
+                if "c51" in m.group(2).lower()
+                else self.UV_ARM_XML_TAG
+            ),
         )
 
     def get_toolchain_from_xml(self, target: ET.Element | None) -> Toolchain | None:

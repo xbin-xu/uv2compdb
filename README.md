@@ -18,7 +18,8 @@ pip install uv2compdb
 
 ### Basic Usage
 
-Generate `compile_commands.json` in the current directory for the first target if the project has multiple targets.
+Generate `compile_commands.json` in the current directory for the first target
+if the project has multiple targets.
 
 ```sh
 uv2compdb /path/to/project
