@@ -8,7 +8,7 @@ import argparse
 from pathlib import Path
 from importlib.metadata import version
 
-from uv2compdb.parser import UV2CompDB, generate_compile_commands
+from uv2compdb.uvision import UV2CompDB, generate_compile_commands
 
 __version__ = version("uv2compdb")
 logger = logging.getLogger(__name__)

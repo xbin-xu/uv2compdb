@@ -1,3 +1,3 @@
-from uv2compdb.main import main
+from uv2compdb.cli import main
 
 __all__ = ["main"]
