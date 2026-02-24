@@ -22,6 +22,7 @@
         "pdata",
         "pycache",
         "pyinstaller",
+        "pyproject",
         "sbit",
         "testpypi",
         "uvconvertor",

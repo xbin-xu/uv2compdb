@@ -4,12 +4,16 @@ PROJECT_OUTPUT_DIR := build
 PROJECT_SRC_PATH := src/uv2compdb
 PROJECT_ICON_PATH := assets/$(PROJECT_NAME).ico
 
+.PHONY: sync-version
+sync-version:
+	@grep "^version" pyproject.toml | sed 's/version = "\(.*\)"/__version__ = "\1"/' > $(PROJECT_SRC_PATH)/_version.py
+
 .PHONY: build
-build:
+build: sync-version
 	uv build
 
 .PHONY: install
-install:
+install: build
 	uv pip install .
 
 .PHONY: publish publish-test
@@ -21,7 +25,7 @@ publish-test:
 
 .PHONY: exe
 # nuitka
-exe:
+exe: sync-version
 	uv tool run --from nuitka nuitka.cmd \
 		--standalone \
 		--onefile \
@@ -31,7 +35,7 @@ exe:
 		$(PROJECT_SRC_PATH)
 
 # pyinstaller
-# exe:
+# exe: sync-version
 # 	uv tool run pyinstaller \
 # 		--onefile \
 # 		--console \
