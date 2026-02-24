@@ -12,11 +12,6 @@ from uv2compdb.uvision import UV2CompDB, generate_compile_commands
 
 __version__ = version("uv2compdb")
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(levelname).1s] %(message)s",
-    # format="[%(levelname).1s] [%(asctime)s] [%(filename)s:%(lineno)d] %(message)s",
-)
 
 
 def main() -> int:
@@ -24,11 +19,17 @@ def main() -> int:
         description="Generate compile_commands.json by parse Keil µVision project"
     )
     parser.add_argument(
-        "-v",
+        "-V",
         "--version",
         action="version",
         version=__version__,
         help="show version and exit",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="enable verbose output",
     )
     parser.add_argument("-a", "--arguments", default=None, help="add extra arguments")
     parser.add_argument(
@@ -54,6 +55,13 @@ def main() -> int:
 
     args = parser.parse_args()
 
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(
+        level=log_level,
+        format="[%(levelname).1s] %(message)s",
+        # format="[%(levelname).1s] [%(asctime)s] [%(filename)s:%(lineno)d] %(message)s",
+    )
+
     try:
         uv2compdb = UV2CompDB(args.project)
 
@@ -61,11 +69,10 @@ def main() -> int:
             logger.error("No targets found in project")
             return 1
 
+        logger.debug(f"Project has target(s): {targets}")
         if not args.target:
             args.target = targets[0]
-            logger.warning(
-                f"Project has target(s): {targets}, use the first {args.target}"
-            )
+            logger.warning(f"Not specified target, use the first '{args.target}'")
         elif args.target not in targets:
             logger.error(f"Not found target: {args.target}")
             return 1
@@ -88,7 +95,7 @@ def main() -> int:
             return 1
         logger.info(f"Generate at {args.output.resolve().as_posix()}")
     except Exception as e:
-        logger.exception(f"Unexpected error: {e}")
+        logger.critical(f"Unexpected error: {e}", exc_info=args.verbose)
         return 1
 
     return 0
