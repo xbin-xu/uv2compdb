@@ -15,42 +15,64 @@ logger = logging.getLogger(__name__)
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Generate compile_commands.json by parse Keil µVision project"
+        description="Generate compile_commands.json by parse Keil µVision project",
+        add_help=False,
+    )
+    parser.add_argument(
+        "-h",
+        "--help",
+        action="help",
+        default=argparse.SUPPRESS,
+        help="Show this help message and exit",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output",
     )
     parser.add_argument(
         "-V",
         "--version",
         action="version",
         version=__version__,
-        help="show version and exit",
+        help="Show version and exit",
     )
     parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="enable verbose output",
+        "-a",
+        "--arguments",
+        default=None,
+        help="Add extra arguments",
     )
-    parser.add_argument("-a", "--arguments", default=None, help="add extra arguments")
     parser.add_argument(
         "-b",
         "--build",
         action="store_true",
-        help="try to build while dep/build_log files don't not exist",
+        help="Try to build while dep/build_log files don't not exist",
     )
-    parser.add_argument("-t", "--target", default=None, help="target name")
+    parser.add_argument(
+        "-t",
+        "--target",
+        default=None,
+        help="Target name",
+    )
     parser.add_argument(
         "-o",
         "--output",
         default="compile_commands.json",
-        help="output dir/file path (default: compile_commands.json)",
+        help="Output dir/file path (default: compile_commands.json)",
     )
     parser.add_argument(
         "-p",
         "--predefined",
         action="store_true",
-        help="try to add predefined macros",
+        help="Try to add predefined macros",
     )
-    parser.add_argument("project", type=Path, help="path to .uvproj[x] file")
+    parser.add_argument(
+        "project",
+        type=Path,
+        help="Path to .uvproj[x] file",
+    )
 
     args = parser.parse_args()
 
