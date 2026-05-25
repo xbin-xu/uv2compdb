@@ -411,7 +411,7 @@ class UV2CompDB:
                 # file_type = self._get_text(file.find("FileType"))
 
                 if not file_path or not file_path.lower().endswith(
-                    (".a51", ".s", ".c", ".cpp", ".cc", ".cx", ".cxx")
+                    (".a51", ".s", ".asm", ".c", ".cpp", ".cc", ".cx", ".cxx")
                 ):
                     continue
 
@@ -561,7 +561,7 @@ class UV2CompDB:
                     target_setting.toolchain, file_object.arguments
                 )
                 if predefined_macros
-                and not file_object.file.lower().endswith((".a51", ".s"))
+                and not file_object.file.lower().endswith((".a51", ".s", ".asm"))
                 else []
             )
             arguments = self.filter_unknown_argument(
@@ -575,7 +575,7 @@ class UV2CompDB:
                         [
                             (
                                 target_setting.toolchain.compiler
-                                if not file_object.file.lower().endswith((".a51", ".s"))
+                                if not file_object.file.lower().endswith((".a51", ".s", ".asm"))
                                 else target_setting.toolchain.assembler
                             )
                         ]
