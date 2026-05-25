@@ -27,6 +27,8 @@
         "testpypi",
         "uvconvertor",
         "uvision",
+        "uvopt",
+        "uvoptx",
         "uvproj",
         "venv",
         "workpath",

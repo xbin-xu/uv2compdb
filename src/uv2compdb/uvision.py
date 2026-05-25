@@ -195,12 +195,30 @@ class UV2CompDB:
         return tree.getroot()
 
     @cached_property
+    def opt_root(self) -> ET.Element | None:
+        for suffix in (".uvoptx", ".uvopt"):
+            opt_path = self.project_path.with_suffix(suffix)
+            if opt_path.exists():
+                return ET.parse(opt_path).getroot()
+        return None
+
+    @cached_property
     def targets(self) -> dict[str, ET.Element]:
         return {
             target_name: target
             for target in self.root.findall(".//Target")
             if (target_name := self._get_text(target.find("TargetName")))
         }
+
+    @cached_property
+    def current_target(self) -> str | None:
+        if self.opt_root is None:
+            return None
+
+        for target in self.opt_root.findall(".//Target"):
+            if self._get_text(target.find(".//IsCurrentTarget")) == "1":
+                return self._get_text(target.find("TargetName"))
+        return None
 
     def _get_text(self, elem: ET.Element | None) -> str | None:
         if elem is None or elem.text is None:

@@ -17,10 +17,10 @@ install: build
 	uv pip install .
 
 .PHONY: publish publish-test
-publish:
+publish: clean build
 	uv tool run twine upload dist/*
 
-publish-test:
+publish-test: clean build
 	uv tool run twine upload --repository testpypi dist/*
 
 .PHONY: exe

@@ -92,8 +92,15 @@ def main() -> int:
 
         logger.debug(f"Project has target(s): {targets}")
         if not args.target:
-            args.target = targets[0]
-            logger.warning(f"Not specified target, use the first '{args.target}'")
+            current_target = uv2compdb.current_target
+            if current_target and current_target in targets:
+                args.target = current_target
+                logger.info(f"Not specified target, use current target '{args.target}'")
+            else:
+                args.target = targets[0]
+                logger.warning(
+                    f"Not specified target and not found current target, use the first '{args.target}'"
+                )
         elif args.target not in targets:
             logger.error(f"Not found target: {args.target}")
             return 1
