@@ -106,13 +106,11 @@ class VariousControls:
         return " ".join(self.get_options())
 
     def get_options(self) -> list[str]:
-        # 'MBEDTLS_CONFIG_FILE=/\"config-aes-cbc.h/\"'
-        #    => '-DMBEDTLS_CONFIG_FILE="config-aes-cbc.h"'
         return (
             [f"-I{to_posix_path(x)}" for x in self.include_path]
             + [f"{to_posix_path(x)}" for x in self.misc_controls]
             + [f"-U{to_posix_path(x)}" for x in self.undefine]
-            + ["-D" + to_posix_path(x.replace(r'\\"', '"')) for x in self.define]
+            + ["-D" + to_posix_path(x.replace(r"\"", '"')) for x in self.define]
         )
 
     @classmethod
