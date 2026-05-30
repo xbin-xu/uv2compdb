@@ -593,7 +593,9 @@ class UV2CompDB:
                         [
                             (
                                 target_setting.toolchain.compiler
-                                if not file_object.file.lower().endswith((".a51", ".s", ".asm"))
+                                if not file_object.file.lower().endswith(
+                                    (".a51", ".s", ".asm")
+                                )
                                 else target_setting.toolchain.assembler
                             )
                         ]
