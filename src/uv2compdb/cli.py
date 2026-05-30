@@ -51,6 +51,12 @@ def main() -> int:
         help="Try to build while dep/build_log files don't not exist",
     )
     parser.add_argument(
+        "-B",
+        "--always_build",
+        action="store_true",
+        help="Always try to build",
+    )
+    parser.add_argument(
         "-t",
         "--target",
         default=None,
@@ -113,7 +119,7 @@ def main() -> int:
         else:
             args.output = output_path
 
-        target_setting = uv2compdb.parse(args.target, args.build)
+        target_setting = uv2compdb.parse(args.target, args.build, args.always_build)
         command_objects = uv2compdb.generate_command_objects(
             target_setting,
             shlex.split(args.arguments) if args.arguments else [],

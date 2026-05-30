@@ -291,7 +291,7 @@ class UV2CompDB:
             return None
 
         if try_build and not build_log_path.exists():
-            logger.warning("Not found build_log, try build ...")
+            logger.warning("Not found build_log, try to build...")
             self.try_build(target)
         if not build_log_path.exists():
             return None
@@ -377,7 +377,7 @@ class UV2CompDB:
             return []
 
         if try_build and not dep_path.exists():
-            logger.warning("Not Found dep file, try build ...")
+            logger.warning("Not Found dep file, try to build...")
             self.try_build(target)
         if not dep_path.exists():
             return []
@@ -445,10 +445,17 @@ class UV2CompDB:
                 # logger.debug(f"file_object: {file_objects[-1]}")
         return file_objects
 
-    def parse(self, target_name: str, try_build: bool = False) -> TargetSetting | None:
+    def parse(
+        self, target_name: str, try_build: bool = False, always_build: bool = False
+    ) -> TargetSetting | None:
         if (target := self.targets.get(target_name)) is None:
             logger.warning(f"Not found target: {target_name}")
             return None
+
+        if always_build:
+            logger.info("Always try to build...")
+            self.try_build(target)
+            try_build = False
 
         if (toolchain := self.get_toolchain(target, try_build)) is None:
             logger.warning("Not found toolchain")
